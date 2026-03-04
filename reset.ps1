@@ -27,7 +27,7 @@ function Show-Header {
 /_/  |_/_/    \____/_____/_____/\____/    /_/ /_____/\____/_/ /_/_/ |_/\____/_____/\____/\____/   /_/   
 '@
     Write-Host $Banner -ForegroundColor Cyan
-    Write-Host "`n    FACTORY RESET INITIATOR v1.2" -ForegroundColor White
+    Write-Host "`n    FACTORY RESET INITIATOR v1.3" -ForegroundColor White
     Write-Host "=================================================================================" -ForegroundColor DarkGray
     Write-Host "        [CRITICAL] Running in Elevated Permissions" -ForegroundColor Red 
 }
@@ -60,26 +60,37 @@ if ($Confirmation -cne "CONFIRM") {
     Exit
 }
 
-# --- 4. EXECUTION ---
+# --- 6. EXECUTION ---
 Write-Host "`n[ EXECUTING SYSTEM RESET ]" -ForegroundColor Yellow
 Write-Host "   > Launching native Windows Reset tool..." -ForegroundColor Green
 
 try {
-    # Define the standard 64-bit path
-    $ResetTool = "$env:windir\System32\systemreset.exe"
-    
-    # If not found, check sysnative (fixes 32-bit PowerShell on 64-bit OS issues)
-    if (!(Test-Path $ResetTool) -and (Test-Path "$env:windir\sysnative\systemreset.exe")) {
-        $ResetTool = "$env:windir\sysnative\systemreset.exe"
-    }
+    # 1. Define paths for both Legacy (Pre-24H2) and Modern (24H2+) tools
+    $LegacyReset = "$env:windir\System32\systemreset.exe"
+    $ModernReset = "$env:windir\System32\SystemSettingsAdminFlows.exe"
 
-    # Execute if the file actually exists
-    if (Test-Path $ResetTool) {
-        Start-Process -FilePath $ResetTool -ArgumentList "-factoryreset"
+    # Check sysnative to bypass 32-bit PowerShell redirection on a 64-bit OS
+    if (!(Test-Path $LegacyReset) -and (Test-Path "$env:windir\sysnative\systemreset.exe")) {
+        $LegacyReset = "$env:windir\sysnative\systemreset.exe"
+    }
+    
+    # 2. Try Legacy tool first
+    if (Test-Path $LegacyReset) {
+        Start-Process -FilePath $LegacyReset -ArgumentList "-factoryreset"
         Write-Host "`n[ COMPLETE ] The Windows Reset UI has been launched." -ForegroundColor Green
         Write-Host "Please follow the on-screen prompts to finalize the wipe." -ForegroundColor DarkGray
-    } else {
-        Write-Error "CRITICAL: systemreset.exe could not be found. This specific Windows build or image may have had the Recovery Environment stripped out."
+    }
+    # 3. Try Modern tool (Windows 11 24H2+) if Legacy is missing
+    elseif (Test-Path $ModernReset) {
+        Start-Process -FilePath $ModernReset -ArgumentList "FeaturedResetPC"
+        Write-Host "`n[ COMPLETE ] The Windows 11 24H2 Reset UI has been launched." -ForegroundColor Green
+        Write-Host "Please follow the on-screen prompts to finalize the wipe." -ForegroundColor DarkGray
+    }
+    # 4. Ultimate Fallback (Opens the Recovery Settings Page directly)
+    else {
+        Write-Warning "Direct reset executables missing. Opening Windows Recovery Settings..."
+        Start-Process "ms-settings:recovery"
+        Write-Host "`n[ ACTION REQUIRED ] Please click 'Reset PC' in the Settings window that just opened." -ForegroundColor Yellow
     }
 } catch {
     Write-Error "Failed to launch the system reset tool. Error: $($_.Exception.Message)"
