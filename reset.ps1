@@ -27,7 +27,7 @@ function Show-Header {
 /_/  |_/_/    \____/_____/_____/\____/    /_/ /_____/\____/_/ /_/_/ |_/\____/_____/\____/\____/   /_/   
 '@
     Write-Host $Banner -ForegroundColor Cyan
-    Write-Host "`n    FACTORY RESET INITIATOR v1.1" -ForegroundColor White
+    Write-Host "`n    FACTORY RESET INITIATOR v1.2" -ForegroundColor White
     Write-Host "=================================================================================" -ForegroundColor DarkGray
     Write-Host "        [CRITICAL] Running in Elevated Permissions" -ForegroundColor Red 
 }
