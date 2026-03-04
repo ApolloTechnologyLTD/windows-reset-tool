@@ -64,13 +64,25 @@ if ($Confirmation -cne "CONFIRM") {
 Write-Host "`n[ EXECUTING SYSTEM RESET ]" -ForegroundColor Yellow
 Write-Host "   > Launching native Windows Reset tool..." -ForegroundColor Green
 
-# Launching the built-in Windows System Reset tool.
 try {
-    Start-Process -FilePath "systemreset.exe" -ArgumentList "-factoryreset"
-    Write-Host "`n[ COMPLETE ] The Windows Reset UI has been launched." -ForegroundColor Green
-    Write-Host "Please follow the on-screen prompts to finalize the wipe." -ForegroundColor DarkGray
+    # Define the standard 64-bit path
+    $ResetTool = "$env:windir\System32\systemreset.exe"
+    
+    # If not found, check sysnative (fixes 32-bit PowerShell on 64-bit OS issues)
+    if (!(Test-Path $ResetTool) -and (Test-Path "$env:windir\sysnative\systemreset.exe")) {
+        $ResetTool = "$env:windir\sysnative\systemreset.exe"
+    }
+
+    # Execute if the file actually exists
+    if (Test-Path $ResetTool) {
+        Start-Process -FilePath $ResetTool -ArgumentList "-factoryreset"
+        Write-Host "`n[ COMPLETE ] The Windows Reset UI has been launched." -ForegroundColor Green
+        Write-Host "Please follow the on-screen prompts to finalize the wipe." -ForegroundColor DarkGray
+    } else {
+        Write-Error "CRITICAL: systemreset.exe could not be found. This specific Windows build or image may have had the Recovery Environment stripped out."
+    }
 } catch {
-    Write-Error "Failed to launch systemreset.exe. Ensure you are running Windows 10 or 11."
+    Write-Error "Failed to launch the system reset tool. Error: $($_.Exception.Message)"
 }
 
 Pause
